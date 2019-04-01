@@ -19,14 +19,16 @@ def recommend(user, k=10, input="tweets.tsv", output="command_line"):
     # Extracts user from bags of words
     bags_of_words, user_bag = extract_user(bags_of_words, user)
     # Scores the users based on bags of words
-    scores = similarity_score(bags_of_words, user_bag)
-    sorted_scores = sort_score(scores)
-    top_scores = get_top_scores(scores, k)
+    # scores = similarity_score(bags_of_words, user_bag)
+    # sorted_scores = sort_score(scores)
+    # top_scores = get_top_scores(scores, k)
 
     if output == "command_line":
-        print_top_scores(top_scores)
+        pass
+        # print_top_scores(top_scores)
     else:
-        top_scores.saveAsTextFile(output)
+        pass
+        # top_scores.saveAsTextFile(output)
 
 
 def get_rdd(input):
@@ -53,34 +55,9 @@ def create_bags_of_words(rdd):
 
     tweets = rdd.reduceByKey(lambda a, b: a + b)
 
-    bags = tweets.mapValues(count_words)
+    bags = tweets.flatMapValues(lambda x: x.split())
 
     return bags
-
-    # bags = bags.mapValues(lambda words: words.countByKey())
-    # vals = bags.values().flatMap(lambda x: x.split()).countByValue()
-    # print vals
-    #vals.foreach(p)
-    # bags.foreach(p)
-
-    # def group_tweets(acc, val):
-    #     return acc + val
-    #
-    # def group_accumulators(acc1, acc2):
-    #     return acc1 + acc2
-    #
-    # bags = rdd.aggregateByKey(
-    #     "",
-    #     group_tweets,
-    #     group_accumulators
-    # )
-    #
-    # bags = bags.mapValues(lambda words: words.split(" "))
-    #
-    # bags = bags.mapValues(lambda words: words.countByValue())
-    # bags.foreach(p)
-
-    # return bags
 
 
 def extract_user(bags_of_words, user):
