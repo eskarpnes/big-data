@@ -50,10 +50,12 @@ def p(x):
 
 
 def create_bags_of_words(rdd, user):
-
-    bags = rdd.flatMapValues(lambda x: x.split()).map(lambda x: (x, 1)).reduceByKey(lambda a, b: a + b)
-    user_words = bags.filter(lambda x: x[0][0] == user).map(lambda x: x[0][1]).distinct().collect()
-    bags = bags.filter(lambda x: x[0][1] in user_words)
+    user_words = rdd.filter(lambda x: x[0] == user)\
+        .flatMapValues(lambda x: x.split())\
+        .map(lambda x: x[1]).distinct().collect()
+    bags = rdd.flatMapValues(lambda x: x.split())\
+        .filter(lambda x: x[1] in user_words)\
+        .map(lambda x: (x, 1)).reduceByKey(lambda a, b: a + b)
 
     return bags
 
@@ -90,4 +92,4 @@ def print_top_scores(top_scores):
     pass
 
 
-recommend("bradessex", 2, input="tweets_10.tsv")
+recommend("bradessex", 2, input="tweets.tsv")
