@@ -19,7 +19,7 @@ def recommend(user, k=10, input="tweets.tsv", output="command_line"):
     # Extracts user from bags of words
     bags_of_words, user_bag = extract_user(bags_of_words, user)
     # Scores the users based on bags of words
-    # scores = similarity_score(bags_of_words, user_bag)
+    scores = similarity_score(bags_of_words, user_bag)
     # sorted_scores = sort_score(scores)
     # top_scores = get_top_scores(scores, k)
 
@@ -43,19 +43,7 @@ def p(x):
 
 def create_bags_of_words(rdd):
 
-    def count_words(words):
-        words = words.split()
-        words_dict = dict()
-        for word in words:
-            if word not in words_dict.keys():
-                words_dict[word] = 1
-            else:
-                words_dict[word] += 1
-        return words_dict
-
-    tweets = rdd.reduceByKey(lambda a, b: a + b)
-
-    bags = tweets.flatMapValues(lambda x: x.split())
+    bags = rdd.flatMapValues(lambda x: x.split()).mapValues(lambda x: (x, 1))
 
     return bags
 
@@ -68,17 +56,7 @@ def extract_user(bags_of_words, user):
 
 def similarity_score(bags_of_words, user_bag):
 
-    def sim(user_words, words):
-        score = 0
-        for word in user_words.keys():
-            if word in words.keys():
-                score += min(user_words[word], words[word])
-        return score
-
-    user_words = user_bag.collectAsMap().values()[0]
-    user_scores = bags_of_words.mapValues(lambda words: sim(user_words, words))
-
-    return user_scores
+    return None
 
 
 def sort_score(scores):
