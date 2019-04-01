@@ -2,6 +2,7 @@
 from pyspark import SparkContext
 import os
 import time
+import argparse
 
 sc = SparkContext("local", "Big D")
 
@@ -11,8 +12,15 @@ select k users with max sim score
 sort alphabetically
 '''
 
+parser = argparse.ArgumentParser(description="A recommender")
+parser.add_argument("-k", default=10, type=int, help="Number of similar users to return")
+parser.add_argument("-user", default="bradessex", help="User to find similar users from")
+parser.add_argument("-file", default="tweets.tsv", help="Input file path")
+parser.add_argument("-output", default="command_line", help="Output file path")
 
-def recommend(user, k=10, input="tweets.tsv", output="command_line"):
+args = parser.parse_args()
+
+def recommend(user, k, input, output):
     # Loads all the data into an rdd
     rdd = get_rdd(input)
     start = time.time()
@@ -22,8 +30,8 @@ def recommend(user, k=10, input="tweets.tsv", output="command_line"):
     bags_of_words, user_bag = extract_user(bags_of_words, user)
     # Scores the users based on bags of words
     scores = similarity_score(bags_of_words, user_bag)
-    # sorted_scores = sort_score(scores)
-    # top_scores = get_top_scores(scores, k)
+    sorted_scores = sort_score(scores)
+    top_scores = get_top_scores(sorted_scores, k)
 
     end = time.time()
 
@@ -31,11 +39,10 @@ def recommend(user, k=10, input="tweets.tsv", output="command_line"):
     print end-start
 
     if output == "command_line":
-        pass
-        # print_top_scores(top_scores)
+        print_top_scores(top_scores)
     else:
-        pass
-        # top_scores.saveAsTextFile(output)
+        top_scores = sc.parallelize(top_scores)
+        top_scores.saveAsTextFile(output)
 
 
 def get_rdd(input):
@@ -67,29 +74,37 @@ def extract_user(bags_of_words, user):
 
 
 def similarity_score(bags_of_words, user_bag):
-    # result = bags_of_words.cartesian(user_bag).filter(lambda x: x[0][0][1] == x[1][0][1]).map(lambda x: (x[0][0][0], min(x[0][1], x[1][1]))).reduceByKey(lambda a, b: a + b)
 
-    bags_of_words = bags_of_words.map(lambda x: (x[0][1], (x[0][0], x[1])))
-    user_bag = user_bag.map(lambda x: (x[0][1], (x[0][0], x[1])))
+    # Rearrange tuples so words are keys
+    def rearrange_tuple(x):
+        return x[0][1], (x[0][0], x[1])
 
-    result = bags_of_words.join(user_bag).map(lambda x: (x[1][0][0], min(x[1][0][1], x[1][1][1]))).reduceByKey(lambda a, b: a + b).take(10)
+    bags_of_words = bags_of_words.map(rearrange_tuple)
+    user_bag = user_bag.map(rearrange_tuple)
 
-    for res in result:
-        print res
+    def word_sim(data):
+        other_user = data[1][0][0]
+        other_score = data[1][0][1]
+        user_score = data[1][1][1]
+        return other_user, min(other_score, user_score)
 
-    return None
+    result = bags_of_words.join(user_bag).map(word_sim).reduceByKey(lambda a, b: a + b)
+
+    return result
 
 
 def sort_score(scores):
-    pass
+    scores = scores.sortByKey().sortBy(lambda x: x[1], False)
+    return scores
 
 
 def get_top_scores(scores, k):
-    pass
+    return scores.take(k)
 
 
 def print_top_scores(top_scores):
-    pass
+    for score in top_scores:
+        print score
 
 
-recommend("bradessex", 2, input="tweets.tsv")
+recommend(args.user, args.k, args.file, args.output)
