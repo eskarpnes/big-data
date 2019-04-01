@@ -37,24 +37,28 @@ def get_rdd(input):
     tweets_rdd = tweets_raw.map(lambda x: x.split('\t'))
     return tweets_rdd
 
+
 def p(x):
     print x
 
 
 def create_bags_of_words(rdd):
 
-    bags = rdd.flatMapValues(lambda x: x.split()).mapValues(lambda x: (x, 1))
+    bags = rdd.flatMapValues(lambda x: x.split()).map(lambda x: (x, 1)).reduceByKey(lambda a, b: a + b)
 
     return bags
 
 
 def extract_user(bags_of_words, user):
-    user_bag = bags_of_words.filter(lambda x: x[0] == user)
+    user_bag = bags_of_words.filter(lambda x: x[0][0] == user)
     bags_of_words = bags_of_words.subtractByKey(user_bag)
     return bags_of_words, user_bag
 
 
 def similarity_score(bags_of_words, user_bag):
+    # result = bags_of_words.cartesian(user_bag).filter(lambda x: x[0][0][1] == x[1][0][1]).map(lambda x: (x[0][0][0], min(x[0][1], x[1][1]))).reduceByKey(lambda a, b: a + b)
+    
+    result.foreach(p)
 
     return None
 
@@ -71,4 +75,4 @@ def print_top_scores(top_scores):
     pass
 
 
-recommend("bradessex", 10, input="tweets_tiny.tsv")
+recommend("mary", 2, input="example.tsv")
