@@ -42,7 +42,12 @@ def recommend(user, k, input, output):
         print_top_scores(top_scores)
     else:
         top_scores = sc.parallelize(top_scores)
-        top_scores.saveAsTextFile(output)
+        save(top_scores, output)
+
+
+def save(data, path):
+    data = data.map(lambda x: "\t".join([str(x[0]), str(x[1])]))
+    data.saveAsTextFile(os.path.join(os.getcwd(), path))
 
 
 def get_rdd(input):
